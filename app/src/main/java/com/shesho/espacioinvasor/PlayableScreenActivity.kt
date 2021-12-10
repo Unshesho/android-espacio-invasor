@@ -8,10 +8,12 @@ import android.hardware.Sensor.TYPE_ACCELEROMETER
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.DisplayMetrics
 import android.util.Log
 import android.widget.ImageView
+import android.widget.MediaController
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.animation.doOnEnd
@@ -19,9 +21,10 @@ import com.shesho.espacioinvasor.databinding.ActivityPlayableScreenBinding
 
 class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     private var binding: ActivityPlayableScreenBinding? = null
-    private val metrics = DisplayMetrics()
+    private var metrics: DisplayMetrics? = null
     private var sensorManager: SensorManager? = null
     private var tiltControl = false
+    private var laserSound: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,23 +34,27 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
         binding?.apply {
             setContentView(root)
         }
-
-        getControls()
-    }
-
-    private fun getControls() {
-        tiltControl = intent.getBooleanExtra(TILT_CONTROL, false)
     }
 
     override fun onStart() {
         super.onStart()
 
-        windowManager.defaultDisplay.getMetrics(metrics)
+        setParameters()
+        setControls()
+    }
 
+    private fun setParameters() {
+        metrics = DisplayMetrics()
+        tiltControl = intent.getBooleanExtra(TILT_CONTROL, false)
+        laserSound = MediaPlayer.create(this, R.raw.laser_sound)
+
+        metrics?.apply { windowManager.defaultDisplay.getMetrics(metrics) }
+    }
+
+    private fun setControls() {
         setBulletControl()
         if (!tiltControl) clickControls()
         else setupAccelerometerSensorListener()
-
     }
 
     /* TODO: Change to automatic shooting */
@@ -61,11 +68,12 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
     private fun shootBullet() {
         val bullet = createBullet()
+        playShootSound()
         translateBullet(bullet)
     }
 
     private fun createBullet(): ImageView {
-        val bullet = ImageView(this@PlayableScreenActivity)
+        val bullet = ImageView(this)
         val params = ConstraintLayout.LayoutParams(BULLET_WIDTH, BULLET_HEIGHT)
         bullet.layoutParams = params
         bullet.setBackgroundColor(resources.getColor(R.color.purple_500))
@@ -80,6 +88,11 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     private fun getShipCenter(): Float {
         binding?.apply { return ship.x + ship.width.toFloat() / 2 }
         return 0f
+    }
+
+    private fun playShootSound() {
+        if (laserSound?.isPlaying == true) laserSound?.seekTo(0)
+        laserSound?.start()
     }
 
     private fun translateBullet(bullet: ImageView) {
@@ -98,7 +111,7 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
             rightButton.setOnClickListener {
                 val futureXRight = ship.x + MOVEMENT_X
-                val limitRight = metrics.widthPixels - ship.width
+                val limitRight = (metrics?.widthPixels ?: 0) - ship.width
                 if (futureXRight <= limitRight) ship.x = futureXRight
             }
         }
@@ -129,7 +142,7 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
         val xRotation = getSensorValues(event)
         binding?.apply {
             val nextPosition = ship.x - xRotation
-            val limitRight = metrics.widthPixels - ship.width
+            val limitRight = (metrics?.widthPixels ?: 0) - ship.width
             if (nextPosition >= 0 && nextPosition <= limitRight) ship.x = nextPosition
         }
     }
@@ -139,6 +152,12 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
             return event.values[0]
         }
         return 0f
+    }
+
+    override fun onStop() {
+        super.onStop()
+        metrics = null
+        laserSound = null
     }
 
     override fun onDestroy() {

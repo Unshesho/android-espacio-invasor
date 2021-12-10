@@ -1,5 +1,6 @@
 package com.shesho.espacioinvasor
 
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.content.Intent
 import android.hardware.Sensor
@@ -9,7 +10,11 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.DisplayMetrics
+import android.util.Log
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.animation.doOnEnd
 import com.shesho.espacioinvasor.databinding.ActivityPlayableScreenBinding
 
 class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
@@ -39,8 +44,49 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
         windowManager.defaultDisplay.getMetrics(metrics)
 
+        setBulletControl()
         if (!tiltControl) clickControls()
         else setupAccelerometerSensorListener()
+
+    }
+
+    /* TODO: Change to automatic shooting */
+    private fun setBulletControl() {
+        binding?.apply {
+            shotButton.setOnClickListener {
+                shootBullet()
+            }
+        }
+    }
+
+    private fun shootBullet() {
+        val bullet = createBullet()
+        translateBullet(bullet)
+    }
+
+    private fun createBullet(): ImageView {
+        val bullet = ImageView(this@PlayableScreenActivity)
+        val params = ConstraintLayout.LayoutParams(BULLET_WIDTH, BULLET_HEIGHT)
+        bullet.layoutParams = params
+        bullet.setBackgroundColor(resources.getColor(R.color.purple_500))
+        bullet.x = getShipCenter() - bullet.width / 2
+        binding?.apply {
+            bullet.y = shipFrame.y
+            container.addView(bullet)
+        }
+        return bullet
+    }
+
+    private fun getShipCenter(): Float {
+        binding?.apply { return ship.x + ship.width.toFloat() / 2 }
+        return 0f
+    }
+
+    private fun translateBullet(bullet: ImageView) {
+        val animator = ObjectAnimator.ofFloat(bullet, "translationY", -BULLET_ANIMATION_DISTANCE)
+        animator.duration = BULLET_ANIMATION_DURATION
+        animator.start()
+        animator.doOnEnd { binding?.apply { container.removeView(bullet) } }
     }
 
     private fun clickControls() {
@@ -101,6 +147,10 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     }
 
     companion object {
+        const val BULLET_WIDTH = 30
+        const val BULLET_HEIGHT = 30
+        const val BULLET_ANIMATION_DISTANCE = 100f
+        const val BULLET_ANIMATION_DURATION = 2000L
         const val MOVEMENT_X = 60
         const val TILT_CONTROL = "tilt_control"
 

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Espacio Invasor</string>
+    <string name="push_to_use_touch">Pulsa para jugar con Touch</string>
+    <string name="push_to_use_tilt">Pulsa para jugar con Movimiento</string>
+</resources>

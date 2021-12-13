@@ -17,9 +17,11 @@ import androidx.constraintlayout.widget.ConstraintLayout.*
 import androidx.core.animation.doOnEnd
 import com.shesho.espacioinvasor.BulletConfig.ANIMATION_DISTANCE
 import com.shesho.espacioinvasor.BulletConfig.ANIMATION_DURATION
+import com.shesho.espacioinvasor.BulletConfig.DELAY_SHOOTING
 import com.shesho.espacioinvasor.BulletConfig.HEIGHT
 import com.shesho.espacioinvasor.BulletConfig.WIDTH
 import com.shesho.espacioinvasor.databinding.ActivityPlayableScreenBinding
+import kotlinx.coroutines.*
 
 class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     private var binding: ActivityPlayableScreenBinding? = null
@@ -27,6 +29,8 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     private var sensorManager: SensorManager? = null
     private var tiltControl = false
     private var laserSound: MediaPlayer? = null
+    private var shootingJob: Job? = null
+    private var mainScope: CoroutineScope? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +47,8 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
         setParameters()
         setControls()
+        shootingJob = automaticShooting()
+        mainScope = MainScope()
     }
 
     private fun setParameters() {
@@ -54,54 +60,8 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     }
 
     private fun setControls() {
-        setBulletControl()
         if (!tiltControl) clickControls()
         else setupAccelerometerSensorListener()
-    }
-
-    /* TODO: Change to automatic shooting */
-    private fun setBulletControl() = binding?.apply {
-        shootButton.setOnClickListener {
-            shootBullet()
-        }
-    }
-
-    private fun shootBullet() {
-        val bullet = createBullet()
-        playShootSound()
-        translateBullet(bullet)
-    }
-
-    private fun createBullet(): ImageView {
-        val bullet = ImageView(this)
-        val params = LayoutParams(WIDTH, HEIGHT)
-        bullet.layoutParams = params
-        bullet.setBackgroundColor(resources.getColor(R.color.purple_500))
-        bullet.x = getShipCenter() - bullet.width / 2
-        binding?.apply {
-            bullet.y = shipFrame.y
-            container.addView(bullet)
-        }
-        return bullet
-    }
-
-    private fun getShipCenter(): Float {
-        binding?.apply { return ship.x + ship.width.toFloat() / 2 }
-        return 0f
-    }
-
-    private fun playShootSound() {
-        if (laserSound?.isPlaying == true) laserSound?.seekTo(0)
-        laserSound?.start()
-    }
-
-    private fun translateBullet(bullet: ImageView) {
-        ObjectAnimator.ofFloat(bullet, "translationY", -ANIMATION_DISTANCE)
-            .apply {
-                duration = ANIMATION_DURATION
-                doOnEnd { binding?.container?.removeView(bullet) }
-                start()
-            }
     }
 
     private fun clickControls() {
@@ -131,6 +91,54 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
+    private fun automaticShooting(): Job {
+        return CoroutineScope(Dispatchers.Default).launch {
+            while (isActive) {
+                delay(DELAY_SHOOTING)
+                shootBullet()
+            }
+        }
+    }
+
+    private fun shootBullet() {
+        val bullet = createBullet()
+        playShootSound()
+        translateBullet(bullet)
+    }
+
+    private fun createBullet(): ImageView {
+        val bullet = ImageView(this)
+        val params = LayoutParams(WIDTH, HEIGHT)
+        bullet.layoutParams = params
+        bullet.setBackgroundColor(resources.getColor(R.color.purple_500))
+        bullet.x = getShipCenter() - bullet.width / 2
+        binding?.apply {
+            bullet.y = shipFrame.y
+            mainScope?.launch { container.addView(bullet) }
+        }
+        return bullet
+    }
+
+    private fun getShipCenter(): Float {
+        binding?.apply { return ship.x + ship.width.toFloat() / 2 }
+        return 0f
+    }
+
+    private fun playShootSound() {
+        if (laserSound?.isPlaying == true) laserSound?.seekTo(0)
+        laserSound?.start()
+    }
+
+    private fun translateBullet(bullet: ImageView) {
+        mainScope?.launch {
+            ObjectAnimator.ofFloat(bullet, "translationY", -ANIMATION_DISTANCE)
+                .apply {
+                    duration = ANIMATION_DURATION
+                    doOnEnd { binding?.container?.removeView(bullet) }
+                    start()
+                }
+        }
+    }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
     }
@@ -159,6 +167,9 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onStop() {
         super.onStop()
+        mainScope = null
+        shootingJob?.cancel()
+        shootingJob = null
         displayMetrics = null
         laserSound = null
     }

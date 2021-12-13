@@ -3,6 +3,7 @@
     android:id="@+id/container"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:background="@color/black"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".PlayableScreenActivity">
@@ -29,17 +30,6 @@
         android:layout_height="match_parent"
         android:background="@color/transparent"
         app:layout_constraintLeft_toLeftOf="parent" />
-
-    <Button
-        android:id="@+id/shoot_button"
-        android:layout_width="@dimen/action_button_size"
-        android:layout_height="@dimen/action_button_size"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        />
-
 
     <Button
         android:id="@+id/right_button"

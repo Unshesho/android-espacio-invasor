@@ -99,9 +99,9 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
         ObjectAnimator.ofFloat(bullet, "translationY", -ANIMATION_DISTANCE)
             .apply {
                 duration = ANIMATION_DURATION
-                this.start()
+                doOnEnd { binding?.container?.removeView(bullet) }
+                start()
             }
-            .doOnEnd { binding?.container?.removeView(bullet) }
     }
 
     private fun clickControls() {

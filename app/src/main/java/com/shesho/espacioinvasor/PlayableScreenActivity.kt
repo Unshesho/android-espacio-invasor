@@ -11,17 +11,19 @@ import android.hardware.SensorManager
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.DisplayMetrics
-import android.util.Log
 import android.widget.ImageView
-import android.widget.MediaController
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintLayout.*
 import androidx.core.animation.doOnEnd
+import com.shesho.espacioinvasor.BulletConfig.ANIMATION_DISTANCE
+import com.shesho.espacioinvasor.BulletConfig.ANIMATION_DURATION
+import com.shesho.espacioinvasor.BulletConfig.HEIGHT
+import com.shesho.espacioinvasor.BulletConfig.WIDTH
 import com.shesho.espacioinvasor.databinding.ActivityPlayableScreenBinding
 
 class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     private var binding: ActivityPlayableScreenBinding? = null
-    private var metrics: DisplayMetrics? = null
+    private var displayMetrics: DisplayMetrics? = null
     private var sensorManager: SensorManager? = null
     private var tiltControl = false
     private var laserSound: MediaPlayer? = null
@@ -44,11 +46,11 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     }
 
     private fun setParameters() {
-        metrics = DisplayMetrics()
+        displayMetrics = DisplayMetrics()
         tiltControl = intent.getBooleanExtra(TILT_CONTROL, false)
         laserSound = MediaPlayer.create(this, R.raw.laser_sound)
 
-        metrics?.apply { windowManager.defaultDisplay.getMetrics(metrics) }
+        displayMetrics?.apply { windowManager.defaultDisplay.getMetrics(displayMetrics) }
     }
 
     private fun setControls() {
@@ -58,11 +60,9 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     }
 
     /* TODO: Change to automatic shooting */
-    private fun setBulletControl() {
-        binding?.apply {
-            shotButton.setOnClickListener {
-                shootBullet()
-            }
+    private fun setBulletControl() = binding?.apply {
+        shootButton.setOnClickListener {
+            shootBullet()
         }
     }
 
@@ -74,7 +74,7 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
     private fun createBullet(): ImageView {
         val bullet = ImageView(this)
-        val params = ConstraintLayout.LayoutParams(BULLET_WIDTH, BULLET_HEIGHT)
+        val params = LayoutParams(WIDTH, HEIGHT)
         bullet.layoutParams = params
         bullet.setBackgroundColor(resources.getColor(R.color.purple_500))
         bullet.x = getShipCenter() - bullet.width / 2
@@ -96,10 +96,12 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     }
 
     private fun translateBullet(bullet: ImageView) {
-        val animator = ObjectAnimator.ofFloat(bullet, "translationY", -BULLET_ANIMATION_DISTANCE)
-        animator.duration = BULLET_ANIMATION_DURATION
-        animator.start()
-        animator.doOnEnd { binding?.apply { container.removeView(bullet) } }
+        ObjectAnimator.ofFloat(bullet, "translationY", -ANIMATION_DISTANCE)
+            .apply {
+                duration = ANIMATION_DURATION
+                this.start()
+            }
+            .doOnEnd { binding?.container?.removeView(bullet) }
     }
 
     private fun clickControls() {
@@ -111,7 +113,7 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
             rightButton.setOnClickListener {
                 val futureXRight = ship.x + MOVEMENT_X
-                val limitRight = (metrics?.widthPixels ?: 0) - ship.width
+                val limitRight = (displayMetrics?.widthPixels ?: 0) - ship.width
                 if (futureXRight <= limitRight) ship.x = futureXRight
             }
         }
@@ -129,6 +131,7 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
+
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
     }
 
@@ -142,7 +145,7 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
         val xRotation = getSensorValues(event)
         binding?.apply {
             val nextPosition = ship.x - xRotation
-            val limitRight = (metrics?.widthPixels ?: 0) - ship.width
+            val limitRight = (displayMetrics?.widthPixels ?: 0) - ship.width
             if (nextPosition >= 0 && nextPosition <= limitRight) ship.x = nextPosition
         }
     }
@@ -156,7 +159,7 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onStop() {
         super.onStop()
-        metrics = null
+        displayMetrics = null
         laserSound = null
     }
 
@@ -166,10 +169,6 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     }
 
     companion object {
-        const val BULLET_WIDTH = 30
-        const val BULLET_HEIGHT = 30
-        const val BULLET_ANIMATION_DISTANCE = 100f
-        const val BULLET_ANIMATION_DURATION = 2000L
         const val MOVEMENT_X = 60
         const val TILT_CONTROL = "tilt_control"
 

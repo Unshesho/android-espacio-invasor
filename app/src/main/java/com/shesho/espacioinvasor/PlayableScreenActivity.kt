@@ -167,6 +167,7 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onStop() {
         super.onStop()
+        mainScope = null
         shootingJob?.cancel()
         shootingJob = null
         displayMetrics = null

@@ -13,7 +13,7 @@ import android.os.Bundle
 import android.util.DisplayMetrics
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout.*
+import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
 import androidx.core.animation.doOnEnd
 import com.shesho.espacioinvasor.BulletConfig.ANIMATION_DISTANCE
 import com.shesho.espacioinvasor.BulletConfig.ANIMATION_DURATION
@@ -22,6 +22,7 @@ import com.shesho.espacioinvasor.BulletConfig.HEIGHT
 import com.shesho.espacioinvasor.BulletConfig.WIDTH
 import com.shesho.espacioinvasor.databinding.ActivityPlayableScreenBinding
 import kotlinx.coroutines.*
+import kotlin.random.Random
 
 class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
     private var binding: ActivityPlayableScreenBinding? = null
@@ -47,6 +48,7 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
 
         setParameters()
         setControls()
+        spawnEnemyOnclick()
         shootingJob = automaticShooting()
         mainScope = MainScope()
     }
@@ -59,9 +61,38 @@ class PlayableScreenActivity : AppCompatActivity(), SensorEventListener {
         displayMetrics?.apply { windowManager.defaultDisplay.getMetrics(displayMetrics) }
     }
 
+
+
     private fun setControls() {
         if (!tiltControl) clickControls()
         else setupAccelerometerSensorListener()
+    }
+
+    private fun spawnEnemyOnclick() = binding?.apply {
+        spawnEnemyButton.setOnClickListener { createEnemy() }
+    }
+    //TODO: use classes
+    //TODO: enemies appear cut out of FrameLayout
+    private fun createEnemy() {
+        val enemy = ImageView(this)
+        val params = LayoutParams(150, 150)
+        enemy.layoutParams = params
+        enemy.setImageDrawable(resources.getDrawable(R.drawable.ic_enemy))
+        enemy.x = getRandomPositionX().toFloat()
+        binding?.apply {
+            enemy.y = getRandomPositionY().toFloat()
+            enemySpawn.addView(enemy)
+        }
+    }
+
+    private fun getRandomPositionX(): Int {
+
+        return Random.nextInt(0, (displayMetrics?.widthPixels ?: 0) - 150)//TODO:Change values for enemy width
+    }
+
+    private fun getRandomPositionY(): Int {
+
+        return Random.nextInt(0, (displayMetrics?.heightPixels ?: 0) - 150)//TODO:Change values for enemy height
     }
 
     private fun clickControls() {
